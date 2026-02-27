@@ -1,5 +1,29 @@
 # Confluence Page Extractor
 
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+python .\start_pbi.py
+
+Need to import the folowing project into this one
+
+git clone https://github.com/Stonesth/Tools.git
+
+# import 
+pip install selenium
+pip install chromedriver_py
+pip install keyboard
+
+
+https://artifactory.insim.biz/artifactory/python/
+
+
+
+python -m pip install --index-url "https://artifactory.insim.biz/artifactory/python/simple" selenium
+python -m pip install --index-url "https://artifactory.insim.biz/artifactory/nn-npm-remote-cache/" selenium
+python -m pip install --index-url "https://artifactory.insim.biz/artifactory/nn-py-pypi-org-cache/" selenium
+pip install --index-url "https://artifactory.insim.biz/artifactory/nn-py-pypi-org-cache/" --upgrade pip
+python -m pip index versions pip --index-url https://artifactory.insim.biz/artifactory/nn-py-pypi-org-cache/
+
 ## Objectif
 Créer un outil Python capable de :
 - extraire une page Confluence ;
@@ -10,14 +34,14 @@ Créer un outil Python capable de :
 
 ### 1) Point d’entrée
 - L’utilisateur fournit un identifiant de page racine (ou URL Confluence).
-- L’outil se connecte à l’API Confluence avec un token.
+- L’outil ouvre un navigateur automatisé (Selenium) et utilise une session authentifiée Confluence.
 
 ### 2) Récupération de la page
-- Lire les métadonnées de la page : `id`, `title`, `space`, `version`, `updatedAt`, `author`.
-- Récupérer le contenu principal (HTML / stockage Confluence) + éventuellement une version texte nettoyée.
+- Lire les métadonnées visibles dans la page : `title`, `url`, `space` (si disponible), `last updated` (si disponible).
+- Récupérer le contenu rendu (DOM HTML) + éventuellement une version texte nettoyée.
 
 ### 3) Parcours des sous-pages (récursif)
-- Pour chaque page, appeler l’endpoint des enfants.
+- Pour chaque page, détecter les liens vers les sous-pages depuis la navigation Confluence (sidebar, arbre de pages, section enfants, liens internes).
 - Si des sous-pages existent :
   - répéter le processus pour chaque enfant ;
   - conserver la relation parent/enfant.
@@ -44,8 +68,8 @@ output/
 ```
 
 ### 5) Résilience et qualité
-- Gérer la pagination de l’API.
-- Gérer les limites de taux (retry avec backoff).
+- Gérer le chargement dynamique des pages (attentes explicites, retries, scrolling si nécessaire).
+- Gérer les sessions expirées (reconnexion navigateur) et les erreurs de navigation.
 - Journaliser les pages récupérées, ignorées, et en erreur.
 - Générer un index global (`index.json`) avec l’ensemble des pages extraites.
 
@@ -54,7 +78,11 @@ output/
 
 ## Prochaines étapes (implémentation)
 1. Initialiser le projet Python (`src/`, `requirements.txt`, `config`).
-2. Implémenter le client Confluence API.
-3. Implémenter le crawler récursif.
+2. Implémenter le module navigateur (Selenium + Chrome/Firefox driver).
+3. Implémenter le crawler récursif des sous-pages via le DOM.
 4. Implémenter l’export structuré sur disque.
 5. Ajouter tests unitaires et mode CLI.
+
+## Contraintes
+- Pas d’API Confluence : extraction uniquement via scraping navigateur.
+- Respecter les droits d’accès de l’utilisateur connecté.
