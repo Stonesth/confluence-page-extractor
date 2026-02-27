@@ -44,12 +44,20 @@ def _extract_space_key(url):
     return ""
 
 
-def _slugify(value):
+def _slugify(value, max_len=40):
     if not value:
         return "untitled"
     slug = re.sub(r"[^a-zA-Z0-9\- _]", "", value).strip().replace(" ", "-")
-    slug = re.sub(r"-+", "-", slug)
-    return slug[:80] if slug else "untitled"
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    return slug[:max_len] if slug else "untitled"
+
+
+def _safe_path(path):
+    """Add Windows long-path prefix if needed."""
+    if os.name == "nt" and not path.startswith("\\\\?\\"):
+        abs_path = os.path.abspath(path)
+        return f"\\\\?\\{abs_path}"
+    return path
 
 
 def _diagnose_sidebar(driver, current_page_id):
@@ -466,7 +474,12 @@ def crawl_and_save(driver, start_url, output_root="output", max_depth=2, delay_s
     sequence = 0
     all_pages = []
 
-    def _crawl(url, depth):
+    def _crawl(url, depth, parent_folder_path):
+        """
+        Crawls a page and its children.
+        parent_folder_path: the filesystem folder where this page's folder
+                            will be created (mirrors the Confluence tree).
+        """
         nonlocal sequence
 
         page_id = _extract_page_id(url)
@@ -487,8 +500,8 @@ def crawl_and_save(driver, start_url, output_root="output", max_depth=2, delay_s
 
         sequence += 1
         folder_name = f"{sequence:04d}-{_slugify(title)}"
-        folder_path = os.path.join(pages_root, folder_name)
-        scraper.save_page_data(page_data, output_dir=folder_path)
+        folder_path = os.path.join(parent_folder_path, folder_name)
+        scraper.save_page_data(page_data, output_dir=_safe_path(folder_path))
 
         node = {
             "title": title,
@@ -531,13 +544,14 @@ def crawl_and_save(driver, start_url, output_root="output", max_depth=2, delay_s
             child_page_id = _extract_page_id(child_url)
             if child_page_id in visited_page_ids:
                 continue
-            child_node = _crawl(child_url, depth + 1)
+            # Children are stored inside the current page's folder
+            child_node = _crawl(child_url, depth + 1, folder_path)
             if child_node is not None:
                 node["children"].append(child_node)
 
         return node
 
-    tree = _crawl(root_url, 0)
+    tree = _crawl(root_url, 0, pages_root)
 
     summary = {
         "root_url": root_url,

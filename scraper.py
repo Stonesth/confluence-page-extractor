@@ -168,7 +168,13 @@ def extract_current_page(driver):
 
 
 def save_page_data(page_data, output_dir="output"):
-    os.makedirs(output_dir, exist_ok=True)
+    # Support Windows long paths (>260 chars)
+    if os.name == "nt" and not output_dir.startswith("\\\\?\\"):
+        safe_dir = f"\\\\?\\{os.path.abspath(output_dir)}"
+    else:
+        safe_dir = output_dir
+    os.makedirs(safe_dir, exist_ok=True)
+    output_dir = safe_dir
 
     metadata = {
         "title": page_data.get("title", ""),
