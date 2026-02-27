@@ -471,7 +471,6 @@ def crawl_and_save(driver, start_url, output_root="output", max_depth=2, delay_s
     os.makedirs(pages_root, exist_ok=True)
 
     visited_page_ids = set()
-    sequence = 0
     all_pages = []
 
     def _crawl(url, depth, parent_folder_path):
@@ -480,8 +479,6 @@ def crawl_and_save(driver, start_url, output_root="output", max_depth=2, delay_s
         parent_folder_path: the filesystem folder where this page's folder
                             will be created (mirrors the Confluence tree).
         """
-        nonlocal sequence
-
         page_id = _extract_page_id(url)
         if not page_id:
             return None
@@ -498,8 +495,9 @@ def crawl_and_save(driver, start_url, output_root="output", max_depth=2, delay_s
         page_data = scraper.extract_current_page(driver)
         title = page_data.get("title") or "untitled"
 
-        sequence += 1
-        folder_name = f"{sequence:04d}-{_slugify(title)}"
+        folder_name = _slugify(title)
+        if os.path.exists(os.path.join(parent_folder_path, folder_name)):
+            folder_name = f"{folder_name}-{page_id}"
         folder_path = os.path.join(parent_folder_path, folder_name)
         scraper.save_page_data(page_data, output_dir=_safe_path(folder_path))
 
