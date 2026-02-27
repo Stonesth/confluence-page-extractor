@@ -185,9 +185,13 @@ def save_page_data(page_data, output_dir="output"):
         "extracted_at": datetime.now().isoformat(),
     }
 
+    folder_name = os.path.basename(os.path.normpath(output_dir))
+    if not folder_name:
+        folder_name = "content"
+
     metadata_path = os.path.join(output_dir, "metadata.json")
-    content_path = os.path.join(output_dir, "content.html")
-    content_raw_path = os.path.join(output_dir, "content_raw.html")
+    content_path = os.path.join(output_dir, f"{folder_name}.html")
+    content_raw_path = os.path.join(output_dir, f"{folder_name}_raw.html")
 
     with open(metadata_path, "w", encoding="utf-8") as file:
         json.dump(metadata, file, ensure_ascii=False, indent=2)
